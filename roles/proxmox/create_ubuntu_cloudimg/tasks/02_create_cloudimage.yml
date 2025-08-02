@@ -1,0 +1,115 @@
+
+- name: Create VM
+  command: qm create {{ vmid }} --name {{ inventory_hostname }} --cores {{ hw.cores}} --memory {{ hw.memory }} --net0 virtio,bridge=vmbr0
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+      
+- name: Add disk (import image)
+  command: qm importdisk {{ vmid }} /tmp/{{ linux.distro }}-{{ linux.release }}-server-cloudimg-amd64.img {{ vm_storage }}
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Attach disk to VM
+  command: qm set {{ vmid }} --scsihw virtio-scsi-pci --scsi0 {{ vm_storage }}:vm-{{ vmid }}-disk-0
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Add tags
+  command: qm set {{ vmid }} --tag {{ tags }}
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Add description
+  command: qm set {{ vmid }} --description {{ description }}
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Set cpu to host and ram ballooning to 0
+  command: qm set {{ vmid }} --cpu host --balloon 0
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Add Cloud-Init
+  command: qm set {{ vmid }} --ide2 {{ vm_storage }}:cloudinit
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Set boot order
+  command: qm set {{ vmid }} --boot c --bootdisk scsi0
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Configure IP address, netmask, gateway
+  command: qm set {{ vmid }} --ipconfig0 ip={{ net.ip }}/{{ net.cidr }},gw={{ net.gw }}
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Set VLAN tag
+  command: qm set {{ vmid }} --net0 virtio,bridge={{ net.bridge }},tag={{ net.tag }}
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Configure DNS server
+  command: qm set {{ vmid }} --nameserver {{ dns_server }}
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Configure search domain
+  command: qm set {{ vmid }} --searchdomain {{ dns_search }}
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Copy SSH key        # You need to add you publickey(s) here
+  copy:
+    src: ssh-keys.pub
+    dest: /tmp/id_ed25519.pub # <--- here
+    remote_src: no
+    mode: '0755'
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Export pubkey to file
+  copy:
+    content: "{{ linux_public_key }}"
+    dest: "/tmp/{{ vmid }}.pub"
+    mode: '0644'
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Import SSH key from file
+  command: qm set {{ vmid }} --sshkeys /tmp/{{ vmid }}.pub
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: remove pubkey file
+  shell: rm /tmp/{{ vmid }}.pub
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Set Cloud-Init user and password
+  command: qm set {{ vmid }} --ciuser {{ linux_user }} --cipassword {{ linux_password }}
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Enable QEMU Guest Agent
+  command: qm set {{ vmid }} --agent enabled=1
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Resize disk
+  command: qm disk resize {{ vmid }} scsi0 +20G
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: Start VM
+  command: qm start {{ vmid }}
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: delete cloudimage template von /tmp
+  shell: rm {{ item }}
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+  loop:
+    - /tmp/{{ linux.distro }}-{{ linux.release }}-server-cloudimg-amd64.img
+    - /tmp/id_ed25519.pub

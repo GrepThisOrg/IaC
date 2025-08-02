@@ -1,0 +1,16 @@
+---
+- name: Build Ubuntu 24.04 Custom ISO
+  hosts: "{{ target }}"
+  gather_facts: no
+  serial: 1
+  become: true
+  vars:
+    iso_orig: /srv/ubuntu-24.04-lts.iso
+    iso_name: ubuntu-{{ target }}.iso
+    iso_custom: /srv/iso/{{ iso_name }}
+    workdir: /srv/iso-workdir
+    volname: UBUNTU2404AUTO
+  tasks:
+    - name: Create iso
+      include_role:
+        name: ubuntu_custom_iso

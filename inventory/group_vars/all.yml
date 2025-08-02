@@ -1,0 +1,13 @@
+# 
+linux_user: linuxadmin
+linux_password: '$6$...A100' # create your hashed password by 'mkpasswd --method=sha-512'
+dns_server: 1.1.1.1
+dns_search: example.local
+dns_suffix: example.local
+linux_public_key: "" # add your own public key here
+
+# IPA
+ipa_server: 192.168.0.5         # FQDN of IPA-Servers
+ipa_fqdn: ipasrv.example.local  # FQDN of IPA-Servers
+ipa_realm: EXAMPLE.LOCAL        # Realm of IPA-Servers
+ipa_domain: example.local       # Domain of IPA-Servers

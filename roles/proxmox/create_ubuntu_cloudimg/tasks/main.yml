@@ -1,0 +1,6 @@
+---
+- name: Deploy VM
+  block:
+    - include_tasks: 01_download_cloudimage.yml
+    - include_tasks: 02_create_cloudimage.yml
+  when: type == "cloudimg"

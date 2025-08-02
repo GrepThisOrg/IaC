@@ -1,0 +1,51 @@
+#cloud-config
+autoinstall:
+  version: 1
+  hostname: "{{ inventory_hostname }}"
+  identity:
+    hostname: "{{ inventory_hostname }}"
+    username: "{{ linux_user }}"          # find the variable at inventory/group_vars/all.yml
+    password: "{{ linux_password }}"      # find the variable at inventory/group_vars/all.yml
+  ssh:
+    install-server: true
+    authorized-keys:
+      - "{{ linux_public_key }}"
+  keyboard:
+    layout: de
+  locale: de_DE.UTF-8
+  timezone: Europe/Berlin
+  packages:
+    - curl
+    - htop
+    - net-tools
+    - git
+    - unzip
+    - wget
+    - btop
+    - tmux
+    - chrony
+    - lm-sensors
+  network:
+    version: 2
+    ethernets:
+      net0:
+        match:
+          name: "{{ nic_name }}" # set this variable in the group_vars or 
+        dhcp4: false
+        addresses:
+          - "{{ net.ip }}/{{ net.cidr }}"
+        routes:
+        - to: default
+          via: "{{ net.gw }}"
+        nameservers:
+          search: [{{ dns_search }}]
+          addresses: [{{ dns_server }}]
+  late-commands:
+    - curtin in-target -- bash -c "echo 'server {{ net.gw }} iburst' > /etc/chrony/chrony.conf" # my gateway also provides ntp
+    - curtin in-target -- systemctl enable chrony
+    - curtin in-target -- systemctl restart chrony
+    - curtin in-target -- bash -c "echo '{{ linux_user }} ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers" # with that, you do not need to type in your password for "sudo"
+    - curtin in-target -- bash -c "id -nG {{ linux_user }} | grep -qw sudo && gpasswd -d inst sudo || true" # not needed anymore, see command above
+  storage:
+    layout:
+      name: direct

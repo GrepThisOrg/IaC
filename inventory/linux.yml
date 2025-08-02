@@ -1,0 +1,33 @@
+all:
+  children:
+    proxmox: # You will find the variables in the corresponding group_vars, e.g. in this case: proxmox.yaml
+      hosts:
+        ubuntu-cloudimg:
+          vmid: 1000    # Virtual Machine ID
+          type: cloudimg # can be: lxc, vm, cloudimg
+          linux: {distro: ubuntu, release: 24.04}
+          tags: test    # Tags inside of Proxmox
+          vm_storage: local.ssd01   # Target Storage in Proxmox
+          description: "Test VM"    # Description inside of Proxmox
+          ansible_host: "{{ net.ip }}"
+          hw: {memory: "4096", cores: 4, swap: "512", disk_size_gb: 32}
+          net: {ip: 192.168.0.50, mask: 255.255.255.0, gw: 192.168.0.1, cidr: 24, bridge: vmbr0, tag: 71}
+        ubuntu-vm:
+          vmid: 1001    # Virtual Machine ID
+          type: vm # can be: lxc, vm, cloudimg
+          linux: {distro: ubuntu, release: 24.04}
+          tags: test    # Tags inside of Proxmox
+          vm_storage: local.ssd01   # Target Storage in Proxmox
+          description: "Test VM"    # Description inside of Proxmox
+          ansible_host: "{{ net.ip }}"    # IP which uses ansible to connection to this host
+          hw: {memory: "4096", cores: 4, swap: "512", disk_size_gb: 32}
+          net: {ip: 192.168.0.51, mask: 255.255.255.0, gw: 192.168.0.1, cidr: 24, bridge: vmbr0, tag: 71}
+    baremetal:
+      hosts:
+        ubuntu-iso:
+          type: baremetal
+          linux: {distro: ubuntu, release: 24.04}
+          ansible_host: "{{ net.ip }}"    # IP which uses ansible to connection to this host
+          hw: {memory: "4096", cores: 4, swap: "512", disk_size_gb: 32}
+          net: {ip: 192.168.0.52, mask: 255.255.255.0, gw: 192.168.0.1, cidr: 24, bridge: vmbr0, tag: 71}
+          nic_name: enp8s0* # <-- this should match the name of the nic in the baremetal server, it matches the first nic

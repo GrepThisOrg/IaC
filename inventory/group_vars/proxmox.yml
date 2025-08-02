@@ -1,0 +1,11 @@
+# Here you can put everything related to the proxmox server
+
+proxmox_host: 192.168.0.10 # this is the up address of the children "proxmox"
+vm_storage: local.ssd # enter here the name of you proxmox storage. If you have multiple storages, put this variable inside of each host entries in vms.yml
+
+nic_name: ens18
+
+external_ntp_servers:   # The internal ntp server is always the gateway
+  - ptbtime1.ptb.de
+  - ptbtime2.ptb.de
+  - ptbtime3.ptb.de

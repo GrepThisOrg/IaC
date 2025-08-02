@@ -1,0 +1,56 @@
+---
+- name: set codename for ubuntu 24.04
+  set_fact:
+    linux: "{{ linux | combine({'codename': 'noble'}) }}"
+  when:
+    - linux.distro == "ubuntu"
+    - linux.release == 24.04
+  delegate_to: localhost
+
+- name: set codename for ubuntu 25.04
+  set_fact:
+    linux: "{{ linux | combine({'codename': 'plucky'}) }}"
+  when:
+    - linux.distro == "ubuntu"
+    - linux.release == 25.04
+  delegate_to: localhost
+
+- name: set filename for image
+  set_fact:
+    linux: "{{ linux | combine({'codename': 'plucky'}) }}"
+  when:
+    - linux.distro == "ubuntu"
+    - linux.release == 25.04
+  delegate_to: localhost
+
+- name: Set checksum url for {{ linux.distro }} {{ linux.release }} {{ linux.codename }}
+  set_fact:
+    checksum_url: https://cloud-images.ubuntu.com/releases/{{ linux.codename }}/release/SHA256SUMS
+  delegate_to: localhost
+  when:
+    - linux.distro == "ubuntu"
+
+- name: Get SHA256SUMS file for {{ linux.distro }} {{ linux.release }} {{ linux.codename }}
+  shell: curl -s {{ checksum_url }} | grep cloudimg-amd64.img | awk '{print $1}'
+  register: checksums
+  delegate_to: localhost
+  when: linux.distro == "ubuntu"
+
+- name: Set checksum for {{ linux.distro }} {{ linux.release }} {{ linux.codename }}
+  set_fact:
+    image_checksum: "{{ checksums.stdout }}"
+  delegate_to: localhost
+
+- name: Download cloud image {{ linux.distro }} {{ linux.release }} {{ linux.codename }}
+  get_url:
+    url: "https://cloud-images.ubuntu.com/releases/{{ linux.codename }}/release/{{ linux.distro }}-{{ linux.release }}-server-cloudimg-amd64.img"
+    dest: "/tmp/{{ linux.distro }}-{{ linux.release }}-server-cloudimg-amd64.img"
+    mode: '0644'
+    checksum: "sha256:{{ image_checksum }}"
+  delegate_to: localhost
+  remote_user: root
+  when: linux.distro == 'ubuntu'
+
+- name: Copy cloudimage to proxmox host
+  shell: "scp /tmp/{{ linux.distro }}-{{ linux.release }}-server-cloudimg-amd64.img {{ proxmox_host }}:/tmp/{{ linux.distro }}-{{ linux.release }}-server-cloudimg-amd64.img"
+  delegate_to: localhost

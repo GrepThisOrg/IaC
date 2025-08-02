@@ -1,0 +1,11 @@
+---
+- name: Build Ubuntu 24.04 Custom ISO
+  hosts: "{{ target }}"
+  gather_facts: no
+  serial: 1
+  become: true
+  tasks:
+    - name: Create cloudimage
+      include_role:
+        name: proxmox/create_ubuntu_cloudimg
+      when: type == "cloudimg"
