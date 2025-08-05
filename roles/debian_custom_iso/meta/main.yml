@@ -1,0 +1,29 @@
+galaxy_info:
+  author: wallace-reen
+  description: Installs an Ubuntu VM from a custom ISO with unattended installation parameters.
+  company: Independent
+  license: MIT
+  min_ansible_version: 2.9
+
+  platforms:
+    - name: Debian
+      versions:
+        - 22.04
+        - 24.04
+    - name: Debian
+      versions:
+        - 11
+        - 12
+
+  galaxy_tags:
+    - apache
+    - webserver
+    - ubuntu
+    - debian
+    - httpd
+    - ansible
+    - role
+    - linux
+    - server
+
+dependencies: []

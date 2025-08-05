@@ -1,0 +1,81 @@
+## Localization
+d-i debian-installer/language string de  
+d-i debian-installer/country string DE  
+d-i debian-installer/locale string de_DE.UTF-8  
+d-i keyboard-configuration/xkb-keymap select de  
+d-i time/zone string Europe/Berlin  
+
+## Network Settings
+d-i netcfg/choose_interface select auto  
+d-i netcfg/get_hostname string {{ inventory_hostname }}  
+d-i netcfg/get_domain string indell.local  
+
+## Mirror Configuration
+d-i mirror/country string manual  
+d-i mirror/http/hostname string deb.debian.org  
+d-i mirror/http/directory string /debian  
+d-i mirror/http/proxy string  
+d-i apt-setup/use_mirror boolean true  
+d-i apt-setup/no_cdrom boolean true  
+
+## Static Network Configuration
+d-i netcfg/choose_interface select auto  
+d-i netcfg/disable_autoconfig boolean true  
+d-i netcfg/get_ipaddress string {{ net.ip }}  
+d-i netcfg/get_netmask string {{ net.mask }}  
+d-i netcfg/get_gateway string {{ net.gw }}  
+d-i netcfg/get_nameservers string {{ dns_server }}  
+d-i netcfg/confirm_static boolean true  
+
+## Set Encrypted Password for User
+d-i passwd/user-password-crypted password {{ linux_password }}
+d-i passwd/user-password-crypted-again password {{ linux_password }}
+
+## User Account Setup
+d-i passwd/user-fullname string {{ linux_user }}  
+d-i passwd/username string {{ linux_user }}  
+
+## Root Password Setup
+d-i passwd/root-password-crypted password {{ linux_password }}
+d-i passwd/root-password-crypted-again password {{ linux_password }}
+
+## Timezone Configuration
+d-i time/zone string Europe/Berlin  
+
+## Multipath aktivieren
+d-i disk-detect/multipath/enable boolean true
+
+## Partitionierung auf Multipath-Gerät
+d-i partman-auto/disk string /dev/mapper/mpath0
+d-i partman-auto/method string regular  
+d-i partman-auto/choose_recipe select atomic  
+d-i partman-md/confirm boolean true  
+d-i partman-partitioning/confirm_write_new_label boolean true  
+d-i partman/choose_partition select Finish  
+d-i partman/confirm boolean true  
+d-i partman/confirm_nooverwrite boolean true  
+
+## GRUB Bootloader Installation
+d-i grub-installer/only_debian boolean true  
+d-i grub-installer/with_other_os boolean true  
+d-i grub-installer/bootdev string default  
+
+## Package Selection
+tasksel tasksel/first multiselect standard  
+d-i pkgsel/upgrade select none  
+d-i pkgsel/update-policy select none  
+
+## Final Steps
+d-i finish-install/reboot_in_progress note  
+
+## Multipath + Chrony + Sudoer im late_command
+d-i preseed/late_command string \
+  in-target apt-get update; \
+  in-target apt-get install -y multipath-tools multipath-tools-boot chrony; \
+  echo 'multipath' > /target/etc/initramfs-tools/conf.d/multipath; \
+  in-target update-initramfs -u; \
+  in-target bash -c "echo 'server {{ net.gw }} iburst' > /etc/chrony/chrony.conf"; \
+  in-target systemctl enable chrony; \
+  in-target systemctl restart chrony; \
+  in-target bash -c 'echo "{{ linux_user }} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-{{ linux_user }}'; \
+  in-target chmod 440 /etc/sudoers.d/90-{{ linux_user }}';
