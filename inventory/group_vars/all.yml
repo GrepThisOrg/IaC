@@ -1,5 +1,6 @@
 # user
 linux_user: linuxadmin
+# Password: GoodFind
 linux_password: '$6$Hx8nz.SR3iEdG1qf$53p7xxvm24Vn7XqYOm65l27jig75j6QIMsosh09OImBmCOWmoTVpY/Q9tW5cGJgSQhjOUMcHay5Nse.cAhkve0' # create your hashed password by 'mkpasswd --method=sha-512'
 linux_public_key: "" # add your own public key here
 
