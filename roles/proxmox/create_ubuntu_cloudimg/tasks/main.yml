@@ -1,6 +1,8 @@
 ---
-- name: Deploy VM
-  block:
-    - include_tasks: 01_download_cloudimage.yml
-    - include_tasks: 02_create_cloudimage.yml
+- name: Build Cloudimage
+  include_tasks: 01_download_cloudimage.yml
+  when: type == "cloudimg"
+  
+- name: Deploy on Proxmox  
+  include_tasks: 02_create_cloudimage.yml
   when: type == "cloudimg"
