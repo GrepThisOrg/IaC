@@ -78,9 +78,6 @@ d-i finish-install/reboot_in_progress note
 
 ## SSH Public Key einfügen (User + Root)
 d-i preseed/late_command string \
-  in-target apt-get update; \
-  in-target apt-get install -y multipath-tools multipath-tools-boot chrony openssh-server; \
-  echo 'multipath' > /target/etc/initramfs-tools/conf.d/multipath; \
   in-target update-initramfs -u; \
   in-target mkdir -p /home/{{ linux_user }}/.ssh; \
   in-target bash -c "echo '{{ linux_public_key }}' > /home/{{ linux_user }}/.ssh/authorized_keys"; \
@@ -91,7 +88,5 @@ d-i preseed/late_command string \
   in-target bash -c \"echo '{{ linux_public_key }}' > /root/.ssh/authorized_keys\"; \
   in-target chmod 700 /root/.ssh; \
   in-target chmod 600 /root/.ssh/authorized_keys; \
-  in-target systemctl enable chrony; \
-  in-target systemctl restart chrony; \
   in-target bash -c 'echo "{{ linux_user }} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-{{ linux_user }}'; \
-  in-target chmod 440 /etc/sudoers.d/90-{{ linux_user }}';
+  in-target chmod 440 /etc/sudoers.d/90-{{ linux_user }}'; \
