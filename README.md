@@ -33,10 +33,7 @@ The playbooks in this repository are split into reusable roles — but an in-dep
 
 ## 📦 Example Playbooks
 
-- `create_vm.yml` — create a VM from cloud image
-- `create_lxc.yml` — create an LXC container with optional presets (work in progress)
-- `build_cloudimage.yml` — customize and prepare a cloud image (e.g. Ubuntu)
-- `prepare_baremetal.yml` — configure and bootstrap physical systems via WebDAV-hosted assets
+- `deploy_linux.yml` — create a VM from cloud image
 
 ---
 
@@ -44,7 +41,7 @@ The playbooks in this repository are split into reusable roles — but an in-dep
 
 - Ansible 2.15+
 - Python 3.x
-- Access to a Proxmox VE host (via API or SSH)
+- Access to a Proxmox VE host (via SSH)
 - A WebDAV-based file server for bare-metal image delivery (optional)
 - Proper SSH key distribution and inventory setup
 
@@ -52,6 +49,8 @@ The playbooks in this repository are split into reusable roles — but an in-dep
 
 ## 🧪 Quick Start
 
+The variable target refers to the inventory host specified in the linux.yml file.
+
 ```bash
-ansible-playbook playbooks/02_create_cloudimage.yml -i inventories/linux.yml -e target="ubuntu-cloudimage"
+ansible-playbook playbooks/deploy_linux.yml -i inventories/linux.yml -e target="ubuntu-cloudimage"
 ```
