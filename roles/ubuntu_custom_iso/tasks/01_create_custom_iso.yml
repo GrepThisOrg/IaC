@@ -28,7 +28,7 @@
 
     - name: Copy user-data for vm
       template:
-        src: user-data
+        src: user-data_vm
         dest: "{{ workdir }}/nocloud/user-data"
       delegate_to: localhost
       when: type == "vm"
@@ -57,7 +57,7 @@
         path: "{{ workdir }}/boot/grub/grub.cfg"
         marker: "# {mark} AUTOINSTALL ENTRY"
         block: |
-          menuentry "Ubuntu Server 24.04 Autoinstall {{ target }}" {
+          menuentry "Ubuntu Server 24.04 Autoinstall {{ inventory_hostname }}" {
               set gfxpayload=keep
               linux   /casper/vmlinuz autoinstall ds=nocloud;s=/cdrom/nocloud/ ---
               initrd  /casper/initrd
@@ -99,7 +99,7 @@
     - name: Build hybrid ISO (UEFI + BIOS)
       command: >
         xorriso -as mkisofs
-        -r -V {{ volname }}
+        -r -V UBUNTUAUTO
         -J -joliet-long -l
         -iso-level 3
         -o {{ iso_custom }}
