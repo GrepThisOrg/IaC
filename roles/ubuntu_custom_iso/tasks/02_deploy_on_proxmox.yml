@@ -15,7 +15,7 @@
   remote_user: root
 
 - name: Add description
-  command: qm set {{ vmid }} --description {{ description }}
+  command: qm set {{ vmid }} --description "{{ description }}"
   delegate_to: "{{ proxmox_host }}"
   remote_user: root
 
