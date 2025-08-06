@@ -22,7 +22,7 @@
 
 - name: Copy preseed file
   template:
-    src: templates/preseed-san.cfg.j2
+    src: templates/preseed.cfg.j2
     dest: "{{ workdir }}/preseed.cfg"
   delegate_to: localhost
 
@@ -67,7 +67,7 @@
 - name: Build hybrid ISO (UEFI + BIOS)
   command: >
     xorriso -as mkisofs
-    -r -V {{ volname }}
+    -r -V DEBIANAUTO
     -J -joliet-long -l
     -iso-level 3
     -o {{ iso_custom }}
