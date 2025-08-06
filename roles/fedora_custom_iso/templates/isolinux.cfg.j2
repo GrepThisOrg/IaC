@@ -1,0 +1,8 @@
+PROMPT 0
+TIMEOUT 1
+DEFAULT autoinstall
+
+LABEL autoinstall
+  MENU LABEL ^{{ volname }}
+  KERNEL /images/pxeboot/vmlinuz
+  APPEND initrd=/images/pxeboot/initrd.img inst.ks=cdrom:/ks.cfg inst.stage2=hd:LABEL={{ volname }}

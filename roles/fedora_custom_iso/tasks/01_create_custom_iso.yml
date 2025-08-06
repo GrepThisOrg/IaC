@@ -1,0 +1,85 @@
+---
+- name: Cleanup previous files
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ workdir }}"
+    - "{{ iso_custom }}"
+  delegate_to: localhost
+
+- name: Create working directory
+  file:
+    path: "{{ workdir }}"
+    state: directory
+  delegate_to: localhost
+
+- name: Extract original ISO
+  command: "7z x {{ iso_orig }} -o{{ workdir }}"
+  args:
+    creates: "{{ workdir }}/[BOOT]"
+  delegate_to: localhost
+
+- name: Create custom directory
+  file:
+    path: "{{ workdir }}/isolinux"
+    state: directory
+  delegate_to: localhost
+
+- name: Copy kickstart to vm
+  template:
+    src: ks.cfg.j2
+    dest: "{{ workdir }}/ks.cfg"
+  delegate_to: localhost
+  when: type == "vm"
+
+- name: Copy isolinux.bin
+  copy:
+    src: /usr/lib/ISOLINUX/isolinux.bin
+    dest: "{{ workdir }}/isolinux/isolinux.bin"
+    remote_src: yes
+  delegate_to: localhost
+
+- name: Copy ldlinux.c32
+  copy:
+    src: /usr/lib/syslinux/modules/bios/ldlinux.c32
+    dest: "{{ workdir }}/isolinux/ldlinux.c32"
+    remote_src: yes
+  delegate_to: localhost
+
+- name: Copy isolinux templates
+  template:
+    src: isolinux.cfg.j2
+    dest: "{{ workdir }}/isolinux/isolinux.cfg"
+  delegate_to: localhost
+
+- name: Copy grub.cfg template
+  template:
+    src: grub.cfg.j2
+    dest: "{{ workdir }}/EFI/BOOT/grub.cfg"
+  delegate_to: localhost
+
+- name: Build hybrid ISO (UEFI + BIOS)
+  command: >
+    xorriso -as mkisofs
+    -r -V {{ volname }}
+    -J -joliet-long -l
+    -iso-level 3
+    -o {{ iso_custom }}
+    -b isolinux/isolinux.bin
+    -c isolinux/boot.cat
+    -no-emul-boot
+    -boot-load-size 4
+    -boot-info-table
+    -eltorito-alt-boot
+    -e EFI/BOOT/BOOTX64.EFI
+    -no-emul-boot
+    {{ workdir }}
+  args:
+    chdir: "{{ workdir }}"
+  delegate_to: localhost
+
+- name: ISO build complete
+  debug:
+    msg: "ISO written to {{ iso_custom }}"
+  delegate_to: localhost
