@@ -2,6 +2,7 @@
 
 proxmox_host: 192.168.0.10 # this is the up address of the children "proxmox"
 vm_storage: local.ssd # enter here the name of you proxmox storage. If you have multiple storages, put this variable inside of each host entries in vms.yml
+iso_storage: local.iso
 
 nic_name: ens18
 
