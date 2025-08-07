@@ -20,11 +20,38 @@
     creates: "{{ workdir }}/[BOOT]"
   delegate_to: localhost
 
-- name: Copy preseed file
+- name: Copy preseed template to file
   template:
-    src: templates/preseed.cfg.j2
+    src: preseed.cfg.j2
     dest: "{{ workdir }}/preseed.cfg"
   delegate_to: localhost
+  when: bios_firmware is not defined or bios_firmware == "BIOS"
+
+- name: Copy preseed file
+  template:
+    src: preseed-efi.cfg.j2
+    dest: "{{ workdir }}/preseed.cfg"
+  delegate_to: localhost
+  when: bios_firmware is defined and bios_firmware == "EFI"
+
+- name: Append preseed.cfg checksum to md5sum.txt, non-EFI
+  shell: |
+    cd "{{ workdir }}" && \
+    md5sum preseed.cfg | sed 's|  |  ./|' >> md5sum.txt
+  args:
+    executable: /bin/bash
+  delegate_to: localhost
+  when: bios_firmware is not defined or bios_firmware == "BIOS"
+
+
+- name: Append preseed-efi.cfg checksum to md5sum.txt, EFI
+  shell: |
+    cd "{{ workdir }}" && \
+    md5sum preseed-efi.cfg | sed 's|  |  ./|' >> md5sum.txt
+  args:
+    executable: /bin/bash
+  delegate_to: localhost
+  when: bios_firmware is defined and bios_firmware == "EFI"
 
 - name: Replace isolinux/txt.cfg for autoinstall
   copy:
@@ -77,8 +104,10 @@
     -boot-load-size 4
     -boot-info-table
     -eltorito-alt-boot
-    -e EFI/boot/bootx64.efi
+    -e boot/grub/efi.img
     -no-emul-boot
+    -isohybrid-gpt-basdat
+    -isohybrid-apm-hfsplus
     {{ workdir }}
   delegate_to: localhost
 
