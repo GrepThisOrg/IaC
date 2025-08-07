@@ -1,0 +1,14 @@
+---
+- name: Create ISO
+  include_tasks: 01_create_custom_iso.yml
+
+- name: Deploy on Proxmox
+  include_tasks: 02_deploy_on_proxmox.yml
+
+- name: Deploy EFI on Proxmox
+  include_tasks: 02_deploy_efi_proxmox.yml
+  when: bios_firmware is defined and bios_firmware == "EFI"
+
+# - name: Do something for baremetal deployment # <-- for example you can move the iso to a fileserver...
+#   include_tasks: 02_deploy_on_proxmox.yml     # ... that will be used to serve the iso to a Supermicro Server...
+#   when: type == "baremetal"                   # ... which then can automatically install debian.

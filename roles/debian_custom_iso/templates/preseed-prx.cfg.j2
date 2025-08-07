@@ -1,0 +1,97 @@
+## Localization
+d-i debian-installer/language string de  
+d-i debian-installer/country string DE  
+d-i debian-installer/locale string de_DE.UTF-8  
+d-i keyboard-configuration/xkb-keymap select de  
+d-i time/zone string Europe/Berlin  
+
+## Mirror Configuration
+d-i mirror/country string manual
+d-i mirror/http/hostname string deb.debian.org
+d-i mirror/http/directory string /debian
+d-i mirror/http/proxy string
+d-i apt-setup/use_mirror boolean true
+d-i apt-setup/no_cdrom boolean true
+d-i mirror/suite string bookworm
+
+## Static Network Configuration
+d-i netcfg/get_hostname string {{ inventory_hostname }}
+d-i netcfg/get_domain string {{ dns_suffix }}
+d-i netcfg/choose_interface select ens18
+d-i netcfg/disable_autoconfig boolean true  
+d-i netcfg/get_ipaddress string {{ net.ip }}  
+d-i netcfg/get_netmask string {{ net.mask }}  
+d-i netcfg/get_gateway string {{ net.gw }}  
+d-i netcfg/get_nameservers string {{ dns_server }}  
+d-i netcfg/confirm_static boolean true  
+
+d-i passwd/make-user boolean false
+d-i passwd/root-login boolean true
+
+## User Account Setup
+d-i passwd/user-fullname string {{ linux_user }}  
+d-i passwd/username string {{ linux_user }}  
+
+## Root Password Setup
+d-i passwd/root-password-crypted password {{ linux_password }}
+d-i passwd/root-password-crypted-again password {{ linux_password }}
+
+# Disk Selection
+d-i preseed/early_command string \
+DISK=""; \
+for dev in /dev/sd? /dev/vd? /dev/nvme?n1; do \
+  if test -b "$dev"; then \
+    size=$(blockdev --getsize64 "$dev"); \
+    if test "$size" -lt 46000000000; then \
+      echo "Using $dev as system disk" > /dev/tty1; \
+      DISK="$dev"; \
+      break; \
+    fi; \
+  fi; \
+done; \
+if [ -n "$DISK" ]; then \
+  echo "$DISK" > /var/run/installer-selected-disk; \
+  debconf-set partman-auto/disk "$DISK"; \
+else \
+  echo "No suitable disk found!" > /dev/tty1; \
+  exit 1; \
+fi
+
+# Automatic Partitioning
+d-i partman-auto/method string regular
+d-i partman-auto/choose_recipe select atomic
+d-i partman-auto/disk string /var/run/installer-selected-disk
+
+# Confirm Partitioning
+d-i partman-lvm/device_remove_lvm boolean true
+d-i partman-lvm/confirm boolean true
+d-i partman-lvm/confirm_nooverwrite boolean true
+d-i partman-md/device_remove_md boolean true
+d-i partman-md/confirm boolean true
+d-i partman-md/confirm_nooverwrite boolean true
+d-i partman/confirm_write_new_label boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+
+
+## Package Selection
+# Tasksel deaktivieren (falls keine Desktop-Umgebung etc.)
+tasksel tasksel/first multiselect standard
+
+# Automatische Paketupdates abstellen
+d-i pkgsel/update-policy select none
+d-i pkgsel/upgrade select none
+
+# OpenSSH direkt installieren
+d-i pkgsel/include string openssh-server curl sudo
+
+## Final Steps
+d-i finish-install/reboot_in_progress note  
+
+## Multipath + Chrony + Sudoer im late_command
+d-i preseed/late_command string \
+  in-target sed -i '/cdrom:/d' /etc/apt/sources.list; \
+  in-target bash -c "echo '{{ linux_public_key }}' > /root/.ssh/authorized_keys"; \
+  in-target sed -i '/^#\?PubkeyAuthentication /c\PubkeyAuthentication yes' /target/etc/ssh/sshd_config; \
+  in-target systemctl restart ssh;

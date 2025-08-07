@@ -1,0 +1,109 @@
+## Localization
+d-i debian-installer/language string de  
+d-i debian-installer/country string DE  
+d-i debian-installer/locale string de_DE.UTF-8  
+d-i keyboard-configuration/xkb-keymap select de  
+d-i time/zone string Europe/Berlin  
+
+## Network Settings
+d-i netcfg/choose_interface select auto  
+d-i netcfg/get_hostname string {{ inventory_hostname }}  
+d-i netcfg/get_domain string {{ dns_suffix }}
+
+## Mirror Configuration
+d-i mirror/country string manual  
+d-i mirror/http/hostname string deb.debian.org  
+d-i mirror/http/directory string /debian  
+d-i mirror/http/proxy string  
+d-i apt-setup/use_mirror boolean true  
+d-i apt-setup/no_cdrom boolean true  
+
+## Static Network Configuration
+d-i netcfg/choose_interface select ens18
+d-i netcfg/disable_autoconfig boolean true  
+d-i netcfg/get_ipaddress string {{ net.ip }}  
+d-i netcfg/get_netmask string {{ net.mask }}  
+d-i netcfg/get_gateway string {{ net.gw }}  
+d-i netcfg/get_nameservers string {{ dns_server }}  
+d-i netcfg/confirm_static boolean true  
+
+## Set Encrypted Password for User
+d-i passwd/user-password-crypted password {{ linux_password }}
+d-i passwd/user-password-crypted-again password {{ linux_password }}
+
+## User Account Setup
+d-i passwd/user-fullname string {{ linux_user }}  
+d-i passwd/username string {{ linux_user }}  
+
+## Root Password Setup
+d-i passwd/root-password-crypted password {{ linux_password }}
+d-i passwd/root-password-crypted-again password {{ linux_password }}
+
+### Partitionierung: Einzelne Festplatte (keine RAID, UEFI)
+d-i partman-auto/method string regular
+d-i partman-partitioning/choose_label select gpt
+d-i partman-auto/disk string /dev/vda
+
+d-i partman-auto/expert_recipe string \
+  boot-root :: \
+    512 512 512 fat32 \
+        $efi{ } method{ efi } format{ } \
+    . \
+    512 1024 1024 ext4 \
+        $primary{ } $bootable{ } method{ format } format{ } \
+        use_filesystem{ } filesystem{ ext4 } mountpoint{ /boot } \
+    . \
+    4096 10000 1000000000 xfs \
+        method{ format } format{ } \
+        use_filesystem{ } filesystem{ xfs } mountpoint{ / } \
+    . \
+    1024 2048 4096 linux-swap \
+        method{ swap } format{ } \
+    .
+
+# EFI explizit bestätigen
+d-i partman-efi/confirm boolean true
+d-i partman-efi/confirm_nooverwrite boolean true
+
+# LVM deaktivieren
+d-i partman-lvm/device_remove_lvm boolean true
+d-i partman-lvm/confirm boolean true
+d-i partman-lvm/confirm_nooverwrite boolean true
+
+# GRUB UEFI korrekt installieren
+d-i grub-installer/bootdev string /dev/vda
+d-i grub-installer/efi_support boolean true
+d-i grub-installer/only_debian boolean true
+
+# Restliche Bestätigungen
+d-i partman/confirm_write_new_label boolean true
+d-i partman/choose_partition select Finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+
+
+## GRUB Bootloader Installation
+d-i grub-installer/only_debian boolean true  
+d-i grub-installer/with_other_os boolean true  
+d-i grub-installer/bootdev string default  
+
+## Package Selection
+# Tasksel deaktivieren (falls keine Desktop-Umgebung etc.)
+tasksel tasksel/first multiselect standard
+
+# Automatische Paketupdates abstellen
+d-i pkgsel/update-policy select none
+d-i pkgsel/upgrade select none
+
+# OpenSSH direkt installieren
+d-i pkgsel/include string openssh-server
+
+## Final Steps
+d-i finish-install/reboot_in_progress note  
+
+## Multipath + Chrony + Sudoer im late_command
+d-i preseed/late_command string \
+  in-target bash -c 'echo "{{ linux_user }} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-{{ linux_user }}'; \
+  in-target bash -c "echo '{{ linux_public_key }}' > /root/.ssh/authorized_keys"; \
+  in-target sed -i '/^#\?PermitRootLogin /c\PermitRootLogin yes' /target/etc/ssh/sshd_config; \
+  in-target chmod 440 /etc/sudoers.d/90-{{ linux_user }}'; \

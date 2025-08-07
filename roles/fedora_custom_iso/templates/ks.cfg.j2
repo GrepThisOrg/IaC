@@ -1,0 +1,40 @@
+lang de_DE.UTF-8
+keyboard de
+timezone Europe/Berlin
+
+# Configure static network
+network --bootproto=static --ip={{ net.ip }} --netmask={{ net.mask }} --gateway={{ net.gw }} --nameserver={{ dns_server }} --device={{ nic_name }} --onboot=on
+
+# Disable root password (no login)
+rootpw --lock
+
+# Create user with hashed password (e.g. via `openssl passwd -6`)
+user --name={{ linux_user }} --gecos="Linux User" --groups=wheel --password={{ linux_password }} --iscrypted --shell=/bin/bash
+
+# Bootloader
+bootloader --location=mbr
+
+# Partitioning (simple)
+clearpart --all --initlabel
+autopart --type=lvm
+
+# Package selection
+%packages
+@core
+@standard
+openssh-server
+qemu-guest-agent
+sudo
+%end
+
+# SSH & sudo privileges
+%post --interpreter /bin/bash
+
+# Sudo privileges for user {{ linux_user }}
+echo "{{ linux_user }} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/it
+chmod 440 /etc/sudoers.d/inst
+
+%end
+
+# Reboot after installation
+reboot

@@ -1,0 +1,92 @@
+---
+- name: download custom iso
+  command: scp {{ iso_custom }} {{ proxmox_host}}:/var/lib/vz/template/iso/{{ iso_name }}
+  delegate_to: localhost
+
+- name: create VM
+  command: >
+    qm create {{ vmid }} 
+    --memory {{ hw.memory }} 
+    --balloon 0 
+    --cores {{ hw.cores }} 
+    --virtio0 local.ssd01:32
+    --autostart 0 
+    --bios seabios 
+    --name {{ inventory_hostname }} 
+    --net0 virtio,bridge={{ net.bridge }},tag={{ net.tag }}
+  register: create_vm_result
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+  when: bios_firmware is defined and bios_firmware == "BOOT"
+
+- name: create VM
+  command: >
+    qm create {{ vmid }}
+    --memory {{ hw.memory }}
+    --balloon 0
+    --cores {{ hw.cores }}
+    --virtio0 local.ssd01:32
+    --virtio1 local.ssd01:100
+    --autostart 0
+    --bios ovmf
+    --machine q35
+    --efidisk0 local.ssd01:0,efitype=4m,format=raw
+    --name {{ inventory_hostname }}
+    --net0 virtio,bridge={{ net.bridge }},tag={{ net.tag }}
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+  when: bios_firmware is defined and bios_firmware == "EFI"
+
+- name: Add tags
+  command: qm set {{ vmid }} --tag {{ tags }}
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+  when: tags is defined
+
+- name: Add description
+  command: qm set {{ vmid }} --description "{{ description }}"
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+  when: description is defined
+
+- name: set serial console
+  command: qm set {{ vmid }} --vga std
+  register: import_disk_result
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: set qemu agent
+  command: qm set {{ vmid }} --agent 1
+  register: import_disk_result
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: import iso
+  command: qm set "{{ vmid }}" --ide2 local:iso/"{{ iso_name }}",media=cdrom
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: set boot mode to ide2:cdrom
+  command: qm set "{{ vmid }}" --boot c --bootdisk ide2
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: start vm
+  command: qm start "{{ vmid }}"
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: wait for 20 seconds before removing DVD and setting boot order
+  wait_for:
+    timeout: 20
+  delegate_to: localhost
+
+- name: remove dvd
+  command: qm set "{{ vmid }}" --delete ide2
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
+
+- name: set virtio0 to boot
+  command: qm set "{{ vmid }}" --boot order=virtio0
+  delegate_to: "{{ proxmox_host }}"
+  remote_user: root
